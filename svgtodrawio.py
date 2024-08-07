@@ -2,7 +2,6 @@ from sys import argv
 from os import listdir, mkdir, path
 from svgcolorreplacer import search_and_replace
 from base64 import b64encode
-from uuid import uuid4
 
 # Takes an svg string of an image and returns the draw.io compatible XML string
 def generate_xml_string(svg_string, title):
@@ -17,7 +16,42 @@ def generate_xml_string(svg_string, title):
     aspect = "fixed"
     return f'\t{{\n\t"data":"data:image/svg+xml;base64,{imagedata};",\n\t\t"w":{w},\n\t\t"h":{h},\n\t\t"title":"{title}",\n\t\t"aspect":"{aspect}"\n\t}},\n'
 
+
+def convert(input_file_path, color, output_folder_name=None):
+    # Loop over all files in input folder
+    xml_library_string = '<mxlibrary>[\n'
+    if output_folder_name is None:
+        output_folder_name = path.dirname(path.abspath(input_file_path)) 
+        xml_library_file_name = output_folder_name + ".xml"
+    else:
+        if not path.exists(output_folder_name):
+            mkdir(output_folder_name)
+        child_folder = path.basename(input_file_path)
+        xml_library_file_name = path.join(output_folder_name, child_folder)   + ".xml"
+        
+    print("Converting svg files...")
+    for input_filename in listdir(input_file_path):
+        if input_filename.endswith(".svg"):
+            #   Read file to string
+            file_to_open = path.join(input_file_path, input_filename)
+            with open(file_to_open, "r") as svg_file:
+                svg_string = svg_file.read()
+            if color is not None:
+                #   Replace color in string
+                new_svg_string = search_and_replace(svg_string, color)
+            else:   
+                new_svg_string = svg_string
+            title = path.splitext(input_filename)[0]
+            xml_string = generate_xml_string(new_svg_string, title)
+            xml_library_string = xml_library_string + xml_string
+    
+    xml_library_string = xml_library_string[:-2] + "\n]</mxlibrary>"
+    with open(xml_library_file_name, "w") as xml_library_file:
+        xml_library_file.write(xml_library_string)
+    print(f'Conversion successful. Library saved as "{xml_library_file_name}".')
+
 if __name__ == "__main__":
+    color = None
     # Check if input arguments are present
     print("Checking input arguments...")
     try:
@@ -28,29 +62,9 @@ if __name__ == "__main__":
             raise IndexError 
     except IndexError:
         input_file_path = input("Enter the folder path with the svg files: ")        
-    try:
-        color = argv[2]
-    except IndexError:
-        color = input("Enter the color you want for the svg files: ")
-
-    # Loop over all files in input folder
-    xml_library_string = '<mxlibrary>[\n'
-    input_folder_name = input_file_path.split('/')[-2]
-    xml_library_file_name = f'{input_folder_name}.xml'
-    print("Converting svg files...")
-    for input_filename in listdir(input_file_path):
-        if input_filename.endswith(".svg"):
-            #   Read file to string
-            with open(f"{input_file_path}{input_filename}", "r") as svg_file:
-                svg_string = svg_file.read()
-            #   Replace color in string
-            # new_svg_string = search_and_replace(svg_string, color)
-            new_svg_string = svg_string
-            title = path.splitext(input_filename)[0]
-            xml_string = generate_xml_string(new_svg_string, title)
-            xml_library_string = xml_library_string + xml_string
-    
-    xml_library_string = xml_library_string[:-2] + "\n]</mxlibrary>"
-    with open(f"{xml_library_file_name}", "w") as xml_library_file:
-        xml_library_file.write(xml_library_string)
-    print(f'Conversion successful. Library saved as "{xml_library_file_name}".')
+    if len(argv)>2:
+        try:
+            color = argv[2]
+        except IndexError:
+            color = input("Enter the color you want for the svg files: ")
+    convert(input_file_path, color)
