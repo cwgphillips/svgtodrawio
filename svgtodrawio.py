@@ -15,7 +15,7 @@ def generate_xml_string(svg_string, title):
 
     minx, miny, w, h = viewbox_string.split(' ')
     aspect = "fixed"
-    return f'{{"data":"data:image/svg+xml;base64,{imagedata};editableCssRules=.*;","w":{w},"h":{h},"title":"{title}","aspect":"{aspect}"}},'
+    return f'\t{{\n\t"data":"data:image/svg+xml;base64,{imagedata};",\n\t\t"w":{w},\n\t\t"h":{h},\n\t\t"title":"{title}",\n\t\t"aspect":"{aspect}"\n\t}},\n'
 
 if __name__ == "__main__":
     # Check if input arguments are present
@@ -34,7 +34,7 @@ if __name__ == "__main__":
         color = input("Enter the color you want for the svg files: ")
 
     # Loop over all files in input folder
-    xml_library_string = '<mxlibrary>['
+    xml_library_string = '<mxlibrary>[\n'
     input_folder_name = input_file_path.split('/')[-2]
     xml_library_file_name = f'{input_folder_name}.xml'
     print("Converting svg files...")
@@ -44,12 +44,13 @@ if __name__ == "__main__":
             with open(f"{input_file_path}{input_filename}", "r") as svg_file:
                 svg_string = svg_file.read()
             #   Replace color in string
-            new_svg_string = search_and_replace(svg_string, color)
+            # new_svg_string = search_and_replace(svg_string, color)
+            new_svg_string = svg_string
             title = path.splitext(input_filename)[0]
             xml_string = generate_xml_string(new_svg_string, title)
             xml_library_string = xml_library_string + xml_string
     
-    xml_library_string = xml_library_string[:-1] + ']</mxlibrary>'
+    xml_library_string = xml_library_string[:-2] + "\n]</mxlibrary>"
     with open(f"{xml_library_file_name}", "w") as xml_library_file:
         xml_library_file.write(xml_library_string)
     print(f'Conversion successful. Library saved as "{xml_library_file_name}".')
