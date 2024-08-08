@@ -1,7 +1,11 @@
 from sys import argv
+import re
 from os import listdir, mkdir, path
+from string import printable
 from svgcolorreplacer import search_and_replace
 from base64 import b64encode
+
+PRINTABLE = set(printable)
 
 # Takes an svg string of an image and returns the draw.io compatible XML string
 def generate_xml_string(svg_string, title):
@@ -29,19 +33,31 @@ def convert(input_file_path, color, output_folder_name=None):
         child_folder = path.basename(input_file_path)
         xml_library_file_name = path.join(output_folder_name, child_folder)   + ".xml"
         
+    # Regex pattern to match any five digits followed by "-icon-service"
+    pattern = r"\d{5}-icon-service-?"
+
     print("Converting svg files...")
+
     for input_filename in listdir(input_file_path):
         if input_filename.endswith(".svg"):
             #   Read file to string
             file_to_open = path.join(input_file_path, input_filename)
             with open(file_to_open, "r") as svg_file:
                 svg_string = svg_file.read()
+                if len("".join(filter(lambda x: x not in PRINTABLE, svg_string))) > 0:
+                    svg_string = "".join(filter(lambda x: x in PRINTABLE, svg_string))
             if color is not None:
                 #   Replace color in string
                 new_svg_string = search_and_replace(svg_string, color)
             else:   
                 new_svg_string = svg_string
-            title = path.splitext(input_filename)[0]
+            title_full = path.splitext(input_filename)[0]
+
+            # Replace the matched pattern with an empty string
+            title = re.sub(pattern, "", title_full)
+
+            title = "az " + title.replace('-', ' ')
+
             xml_string = generate_xml_string(new_svg_string, title)
             xml_library_string = xml_library_string + xml_string
     
